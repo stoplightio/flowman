@@ -1,3 +1,5 @@
+.idea
+/dist
 /.nyc_output
 /coverage
 /coverage.lcov
