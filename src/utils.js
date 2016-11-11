@@ -1,9 +1,19 @@
 import _ from 'lodash';
 
-export const transformVariables = (val) => (
-  _.isString(val) ? val.replace(/\{\{([^}]+)\}\}/g, '<<!$1>>') : val
+/**
+ * Transforms variables from Postman to Flows format.
+ * @param {string} str - string to transform.
+ * @return {string}
+ */
+export const convertVariables = (str) => (
+  _.isString(str) ? str.replace(/\{\{([^}]+)\}\}/g, '<<!$1>>') : str
 );
 
+/**
+ * Converts Postman body to content type header.
+ * @param mode - Postman mode.
+ * @return {object}
+ */
 export const convertModeToHeader = (mode) => {
   switch (mode) {
     case 'formdata':

@@ -33,7 +33,7 @@ const createRequestBody = (request) => {
 const createRequest = (itemRequest) => {
   const request = {
     method: itemRequest.method.toLowerCase(),
-    url: utils.transformVariables(itemRequest.url)
+    url: utils.convertVariables(itemRequest.url)
   };
   const headers = createRequestHeaders(itemRequest);
   const body = createRequestBody(itemRequest);
@@ -142,8 +142,12 @@ const createFlow = (item) => {
 };
 
 export const convert = (collection) => {
+  if (_.isEmpty(collection)) {
+    return [];
+  }
+
   return {
-    name: _.get(collection, 'info.name'),
+    name: _.get(collection, 'info.name') || '',
     flows: collection.item.map(createFlow)
   };
 };
