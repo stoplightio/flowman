@@ -7,6 +7,7 @@ export const transformVariables = (val) => (
 export const convertModeToHeader = (mode) => {
   switch (mode) {
     case 'formdata':
+    case 'urlencoded':
       return {
         'Content-Type': 'application/x-www-form-urlencoded'
       };
