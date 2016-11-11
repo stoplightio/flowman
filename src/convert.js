@@ -1,7 +1,12 @@
 import _ from 'lodash';
 import * as utils from './utils';
 
-const createRequestHeaders = (request) => {
+/**
+ * Creates headers object from passed request.
+ * @param {object} request - Request from which headers will be extracted.
+ * @return {object}
+ */
+export const createRequestHeaders = (request) => {
   const headers = {};
   const modeHeaders = utils.convertModeToHeader(_.get(request, 'body.mode'));
 
@@ -14,7 +19,12 @@ const createRequestHeaders = (request) => {
   return _.merge(headers, modeHeaders);
 };
 
-const createRequestBody = (request) => {
+/**
+ * Creates `key: value` or string request body from passed request.
+ * @param request - Request from which body will be extracted.
+ * @return {object|string}
+ */
+export const createRequestBody = (request) => {
   const mode = _.get(request, 'body.mode');
   const body = _.get(request, ['body', mode]);
 
@@ -30,7 +40,12 @@ const createRequestBody = (request) => {
   }
 };
 
-const createRequest = (itemRequest) => {
+/**
+ * Creates Flow request from passed Postman request.
+ * @param itemRequest - Postman request.
+ * @return {object}
+ */
+export const createRequest = (itemRequest) => {
   const request = {
     method: itemRequest.method.toLowerCase(),
     url: utils.convertVariables(itemRequest.url)
@@ -49,7 +64,12 @@ const createRequest = (itemRequest) => {
   return request;
 };
 
-const createAuth = (auth = {}) => {
+/**
+ * Creates Flow auth object from Postman auth object.
+ * @param {object} auth - Postman auth object.
+ * @return {object}
+ */
+export const createAuth = (auth = {}) => {
   const {type} = auth;
   const authObj = auth[type];
 
@@ -74,14 +94,14 @@ const createAuth = (auth = {}) => {
   }
 };
 
-const createInput = (item) => {
+export const createInput = (item) => {
   return {
     request: createRequest(item.request),
     authorization: createAuth(item.request.auth)
   }
 };
 
-const createScript = (item, type) => {
+export const createScript = (item, type) => {
   const event = _.find(item.event, {listen: type});
 
   if (event) {
@@ -99,7 +119,7 @@ const createScript = (item, type) => {
   }
 };
 
-const createFunction = (item) => {
+export const createFunction = (item) => {
   const fn = {
     name: item.name,
     input: createInput(item)
@@ -118,13 +138,13 @@ const createFunction = (item) => {
   return fn;
 };
 
-const createStep = (item) => {
+export const createStep = (item) => {
   return {
     functions: [createFunction(item)]
   };
 };
 
-const createFlow = (item) => {
+export const createFlow = (item) => {
   const flow = {
     name: item.name,
     flowVersion: '1.0',
