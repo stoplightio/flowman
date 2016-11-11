@@ -80,11 +80,45 @@ const createInput = (item) => {
   }
 };
 
+const createScript = (item, type) => {
+  const event = _.find(item.event, {listen: type});
+
+  if (event) {
+    const {exec} = event.script;
+
+    if (_.isArray(exec)) {
+      return {
+        script: exec.join('\n')
+      }
+    }
+
+    return {
+      script: _.toString(exec)
+    }
+  }
+};
+
 const createFunction = (item) => {
-  return {
+  const fn = {
     name: item.name,
     input: createInput(item)
   };
+  const before = createScript(item, 'prerequest');
+  const after = createScript(item, 'test');
+
+  if (before) {
+    fn.before = {
+      script: before
+    }
+  }
+
+  if (after) {
+    fn.after = {
+      script: after
+    }
+  }
+
+  return fn;
 };
 
 const createStep = (item, folder) => {
