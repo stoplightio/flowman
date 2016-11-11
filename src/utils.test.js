@@ -8,6 +8,10 @@ test('utils > convertVariables > transforms all variables in string', (t) => {
   );
 });
 
+test('utils > convertVariables > handles undefined input', (t) => {
+  t.is(utils.convertVariables(), undefined);
+});
+
 test('utils > convertModeToHeader > returns content type object for formdata mode', (t) => {
   t.deepEqual(utils.convertModeToHeader('formdata'), {
     'Content-Type': 'application/x-www-form-urlencoded'
