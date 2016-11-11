@@ -3,13 +3,8 @@ const buildCases = () => {
     {
       name: 'empty object',
       collection: {},
-      flow: {},
-    },
-    {
-      name: 'empty array',
-      collection: [{}],
-      flow: [{}],
-    },
+      flows: [],
+    }
   ];
 };
 
