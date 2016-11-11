@@ -63,7 +63,8 @@ const createAuth = (auth = {}) => {
       return {
         type,
         [type]: {
-          ..._.pick(authObj, ['consumerKey', 'consumerSecret', 'tokenSecret', 'signatureMethod']),
+          ..._.pick(authObj, ['consumerKey', 'consumerSecret',
+            'tokenSecret', 'signatureMethod']),
           nonceLength: authObj.nonce,
           useHeader: authObj.addParamsToHeader
         }
@@ -107,56 +108,42 @@ const createFunction = (item) => {
   const after = createScript(item, 'test');
 
   if (before) {
-    fn.before = {
-      script: before
-    }
+    fn.before = before;
   }
 
   if (after) {
-    fn.after = {
-      script: after
-    }
+    fn.after = after;
   }
 
   return fn;
 };
 
-const createStep = (item, folder) => {
+const createStep = (item) => {
   return {
-    functions: [createFunction(item)],
-    id: _.kebabCase(`${folder.name || ''} ${item.name}`)
+    functions: [createFunction(item)]
   };
 };
 
-const parseItem = (item, folder) => {
-  if (item.item) {
-    return walkItems(item.item, _.pick(item, ['name', 'description']));
+const createFlow = (item) => {
+  const flow = {
+    name: item.name,
+    flowVersion: '1.0',
+    resourceId: _.kebabCase(item.name),
+    steps: [],
+  };
+
+  if (_.isArray(item.item)) {
+    flow.steps = item.item.map(createStep);
+  } else {
+    flow.steps.push(createStep(item));
   }
 
-  return createStep(item, folder);
-};
-
-const walkItems = (items, folder = {}) => {
-  return items.reduce((res, item) => {
-    const parsed = parseItem(item, folder);
-
-    if (!_.isEmpty(parsed)) {
-      res.push(parsed);
-    }
-
-    return res;
-  }, []);
-};
-
-export const convert = (collection, options = {}) => {
-  const steps = walkItems(collection.item);
-  const flow = {
-    flowVersion: '1.0',
-    ..._.pick(collection.info, ['name', 'description']),
-    steps,
-  };
-
-  console.log(JSON.stringify(flow, null, 2));
-
   return flow;
+};
+
+export const convert = (collection) => {
+  return {
+    name: _.get(collection, 'info.name'),
+    flows: collection.item.map(createFlow)
+  };
 };
