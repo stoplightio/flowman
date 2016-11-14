@@ -214,3 +214,311 @@ test('convert > createAuth > returns undefined for unsupported auth', (t) => {
 
   t.is(auth, undefined);
 });
+
+test('convert > createInput > creates input', (t) => {
+  const input = convert.createInput({
+    request: {
+      url: 'http://example.com:{{var0}}/post',
+      method: 'POST',
+      auth: {
+        type: 'basic',
+        basic: {
+          username: 'user',
+          password: 'password'
+        }
+      }
+    }
+  });
+
+  t.deepEqual(input, {
+    request: {
+      method: 'post',
+      url: 'http://example.com:<<!var0>>/post'
+    },
+    authorization: {
+      type: 'basic',
+      basic: {
+        username: 'user',
+        password: 'password'
+      }
+    }
+  });
+});
+
+test('convert > createInput > handles undefined input', (t) => {
+  t.is(convert.createInput({}), null);
+});
+
+test('convert > createScript > creates before script from array exec', (t) => {
+  const script = convert.createScript({
+    event: [
+      {
+        listen: 'prerequest',
+        script: {
+          type: 'text/javascript',
+          exec: ['postman.clearGlobalVariable("variable_key");']
+        }
+      }
+    ]
+  }, 'prerequest');
+
+  t.deepEqual(script, {
+    script: 'postman.clearGlobalVariable("variable_key");'
+  });
+});
+
+test('convert > createScript > creates after script from string exec', (t) => {
+  const script = convert.createScript({
+    event: [
+      {
+        listen: 'test',
+        script: {
+          type: 'text/javascript',
+          exec: 'tests["Body contains headers"] = responseBody.has("headers");'
+        }
+      }
+    ]
+  }, 'test');
+
+  t.deepEqual(script, {
+    script: 'tests["Body contains headers"] = responseBody.has("headers");'
+  });
+});
+
+test('convert > createScript > handles undefined input', (t) => {
+  const script = convert.createScript({event: []}, 'test');
+
+  t.is(script, undefined);
+});
+
+test('convert > createFunction > creates function', (t) => {
+  const fn = convert.createFunction({
+    name: 'Test Item',
+    request: {
+      url: 'http://example.com:{{var0}}/post',
+      method: 'POST',
+      auth: {
+        type: 'basic',
+        basic: {
+          username: 'user',
+          password: 'password'
+        }
+      }
+    },
+    event: [
+      {
+        listen: 'prerequest',
+        script: {
+          type: 'text/javascript',
+          exec: ['postman.clearGlobalVariable("variable_key");']
+        }
+      },
+      {
+        listen: 'test',
+        script: {
+          type: 'text/javascript',
+          exec: 'tests["Body contains headers"] = responseBody.has("headers");'
+        }
+      }
+    ]
+  });
+
+  t.deepEqual(fn, {
+      name: 'Test Item',
+      input: {
+        request: {
+          method: 'post',
+          url: 'http://example.com:<<!var0>>/post'
+        },
+        authorization: {
+          type: 'basic',
+          basic: {
+            username: 'user',
+            password: 'password'
+          }
+        }
+      },
+      before: {
+        script: 'postman.clearGlobalVariable("variable_key");'
+      },
+      after: {
+        script: 'tests["Body contains headers"] = responseBody.has("headers");'
+      }
+    }
+  );
+});
+
+test('convert > createStep > creates step with one function', (t) => {
+  const step = convert.createStep({
+    name: 'Test Item',
+    request: {
+      url: 'http://example.com:{{var0}}/post',
+      method: 'POST',
+      auth: {
+        type: 'basic',
+        basic: {
+          username: 'user',
+          password: 'password'
+        }
+      }
+    },
+    event: [
+      {
+        listen: 'prerequest',
+        script: {
+          type: 'text/javascript',
+          exec: ['postman.clearGlobalVariable("variable_key");']
+        }
+      },
+      {
+        listen: 'test',
+        script: {
+          type: 'text/javascript',
+          exec: 'tests["Body contains headers"] = responseBody.has("headers");'
+        }
+      }
+    ]
+  });
+
+  t.deepEqual(step, {
+    functions: [{
+      name: 'Test Item',
+      input: {
+        request: {
+          method: 'post',
+          url: 'http://example.com:<<!var0>>/post'
+        },
+        authorization: {
+          type: 'basic',
+          basic: {
+            username: 'user',
+            password: 'password'
+          }
+        }
+      },
+      before: {
+        script: 'postman.clearGlobalVariable("variable_key");'
+      },
+      after: {
+        script: 'tests["Body contains headers"] = responseBody.has("headers");'
+      }
+    }]
+  });
+});
+
+test('convert > createStep > handles undefined input', (t) => {
+  t.deepEqual(convert.createStep(), {
+    functions: [{
+      input: null
+    }]
+  });
+});
+
+test('convert > createFlow > creates flow with one step', (t) => {
+  const flow = convert.createFlow({
+    name: 'Test Item',
+    request: {
+      url: 'http://example.com:{{var0}}/post',
+      method: 'POST',
+      auth: {
+        type: 'basic',
+        basic: {
+          username: 'user',
+          password: 'password'
+        }
+      }
+    }
+  });
+
+  t.deepEqual(flow, {
+    name: 'Test Item',
+    flowVersion: '1.0',
+    resourceId: 'test-item',
+    steps: [{
+      functions: [{
+        name: 'Test Item',
+        input: {
+          request: {
+            method: 'post',
+            url: 'http://example.com:<<!var0>>/post'
+          },
+          authorization: {
+            type: 'basic',
+            basic: {
+              username: 'user',
+              password: 'password'
+            }
+          }
+        }
+      }]
+    }]
+  });
+});
+
+test('convert > createFlow > creates flow with multiple steps', (t) => {
+  const flow = convert.createFlow({
+    name: 'Test Item',
+    item: [
+      {
+        name: 'Test Subitem 1',
+        request: {
+          url: 'http://example.com:{{var0}}',
+          method: 'GET'
+        }
+      },
+      {
+        name: 'Test Subitem 2',
+        request: {
+          url: 'http://example.com:{{var0}}/post',
+          method: 'POST'
+        }
+      }
+    ]
+  });
+
+  t.deepEqual(flow, {
+      name: 'Test Item',
+      flowVersion: '1.0',
+      resourceId: 'test-item',
+      steps: [
+        {
+          functions: [{
+            name: 'Test Subitem 1',
+            input: {
+              request: {
+                method: 'get',
+                url: 'http://example.com:<<!var0>>'
+              }
+            }
+          }]
+        },
+        {
+          functions: [{
+            name: 'Test Subitem 2',
+            input: {
+              request: {
+                method: 'post',
+                url: 'http://example.com:<<!var0>>/post'
+              }
+            }
+          }]
+        }
+      ]
+    }
+  );
+});
+
+test('convert > convert > creates flow collection', (t) => {
+  const collection = convert.convert({
+    info: {
+      name: 'Test collection',
+    },
+    item: []
+  });
+
+  t.deepEqual(collection, {name: 'Test collection', flows: []});
+});
+
+test('convert > convert > handles undefined input', (t) => {
+  t.deepEqual(convert.convert(), []);
+});

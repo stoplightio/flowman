@@ -95,10 +95,20 @@ export const createAuth = (auth = {}) => {
 };
 
 export const createInput = (item) => {
-  return {
-    request: createRequest(item.request),
-    authorization: createAuth(item.request.auth)
+  if (_.isEmpty(item.request)) {
+    return null;
   }
+
+  const input = {
+    request: createRequest(item.request)
+  };
+  const auth = createAuth(item.request.auth);
+
+  if (auth) {
+    input.authorization = auth;
+  }
+
+  return input;
 };
 
 export const createScript = (item, type) => {
@@ -121,11 +131,14 @@ export const createScript = (item, type) => {
 
 export const createFunction = (item) => {
   const fn = {
-    name: item.name,
     input: createInput(item)
   };
   const before = createScript(item, 'prerequest');
   const after = createScript(item, 'test');
+
+  if (item.name) {
+    fn.name = item.name;
+  }
 
   if (before) {
     fn.before = before;
@@ -138,7 +151,7 @@ export const createFunction = (item) => {
   return fn;
 };
 
-export const createStep = (item) => {
+export const createStep = (item = {}) => {
   return {
     functions: [createFunction(item)]
   };
