@@ -69,6 +69,20 @@ test('convert > createRequestBody > returns formdata body', (t) => {
   t.deepEqual(body, {foo: 'bar'});
 });
 
+test('convert > getURL > returns URL parsed from string', (t) => {
+  const url = convert.getURL('http://example.com:{{var0}}/post');
+
+  t.is(url, 'http://example.com:<<!var0>>/post');
+});
+
+test('convert > getURL > returns URL parsed from object', (t) => {
+  const url = convert.getURL({
+    raw: 'http://example.com:{{var0}}/post',
+  });
+
+  t.is(url, 'http://example.com:<<!var0>>/post');
+});
+
 test('convert > createRequest > creates Flow request', (t) => {
   const request = convert.createRequest({
     url: 'http://example.com:{{var0}}/post',

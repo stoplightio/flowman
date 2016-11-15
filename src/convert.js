@@ -41,6 +41,21 @@ export const createRequestBody = (request) => {
 };
 
 /**
+ * Returns parsed URL with replaced variables.
+ * @param {string|object} url - url to parse.
+ * @return {string}
+ */
+export const getURL = (url) => {
+  let result = url;
+
+  if (_.isObject(url)) {
+    result = url.raw;
+  }
+
+  return utils.convertVariables(result || '');
+};
+
+/**
  * Creates Flow request from passed Postman request.
  * @param itemRequest - Postman request.
  * @return {object}
@@ -48,7 +63,7 @@ export const createRequestBody = (request) => {
 export const createRequest = (itemRequest) => {
   const request = {
     method: itemRequest.method.toLowerCase(),
-    url: utils.convertVariables(itemRequest.url)
+    url: getURL(itemRequest.url)
   };
   const headers = createRequestHeaders(itemRequest);
   const body = createRequestBody(itemRequest);
