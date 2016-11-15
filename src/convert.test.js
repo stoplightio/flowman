@@ -5,7 +5,7 @@ test('convert > createRequestHeaders > returns headers with body content type', 
   const headers = convert.createRequestHeaders({
     header: [{
       key: 'Authorization',
-      value: 'Bearer TOKEN',
+      value: 'Bearer {{TOKEN}}',
     }],
     body: {
       mode: 'formdata',
@@ -14,7 +14,7 @@ test('convert > createRequestHeaders > returns headers with body content type', 
   });
 
   t.deepEqual(headers, {
-    'Authorization': 'Bearer TOKEN',
+    'Authorization': 'Bearer <<!TOKEN>>',
     'Content-Type': 'application/x-www-form-urlencoded'
   });
 });
@@ -30,43 +30,43 @@ test('convert > createRequestHeaders > returns body content type header', (t) =>
   t.deepEqual(headers, {'Content-Type': 'application/x-www-form-urlencoded'});
 });
 
-test('convert > createRequestBody > returns raw body', (t) => {
+test('convert > createRequestBody > returns raw body with replaced variables', (t) => {
   const body = convert.createRequestBody({
     body: {
       mode: 'raw',
-      raw: 'test string'
+      raw: 'test string {{var0}}'
     }
   });
 
-  t.deepEqual(body, 'test string');
+  t.deepEqual(body, 'test string <<!var0>>');
 });
 
-test('convert > createRequestBody > returns urlencoded body', (t) => {
+test('convert > createRequestBody > returns urlencoded body with replaced variables', (t) => {
   const body = convert.createRequestBody({
     body: {
       mode: 'urlencoded',
       urlencoded: [{
         key: 'foo',
-        value: 'bar'
+        value: 'bar {{var0}}'
       }]
     }
   });
 
-  t.deepEqual(body, {foo: 'bar'});
+  t.deepEqual(body, {foo: 'bar <<!var0>>'});
 });
 
-test('convert > createRequestBody > returns formdata body', (t) => {
+test('convert > createRequestBody > returns formdata body with replaced variables', (t) => {
   const body = convert.createRequestBody({
     body: {
       mode: 'formdata',
       formdata: [{
         key: 'foo',
-        value: 'bar'
+        value: 'bar {{var0}}'
       }]
     }
   });
 
-  t.deepEqual(body, {foo: 'bar'});
+  t.deepEqual(body, {foo: 'bar <<!var0>>'});
 });
 
 test('convert > getURL > returns URL parsed from string', (t) => {
@@ -150,11 +150,11 @@ test('convert > createRequest > creates request without body and headers', (t) =
   });
 });
 
-test('convert > createAuth > creates basic auth', (t) => {
+test('convert > createAuth > creates basic auth with replaced variables', (t) => {
   const auth = convert.createAuth({
     type: 'basic',
     basic: {
-      username: 'user',
+      username: '{{username}}',
       password: 'password'
     }
   });
@@ -162,20 +162,20 @@ test('convert > createAuth > creates basic auth', (t) => {
   t.deepEqual(auth, {
     type: 'basic',
     basic: {
-      username: 'user',
+      username: '<<!username>>',
       password: 'password'
     }
   });
 });
 
-test('convert > createAuth > creates oauth1 auth', (t) => {
+test('convert > createAuth > creates oauth1 auth with replaced variables', (t) => {
   const auth = convert.createAuth({
     type: 'oauth1',
     oauth1: {
       consumerKey: 'consumer_key',
       consumerSecret: 'consumer_secret',
       token: 'token1111',
-      tokenSecret: 'token_secret123',
+      tokenSecret: '{{tokenSecret}}',
       signatureMethod: 'HMAC-SHA256',
       timeStamp: '1448881347',
       nonce: 'lV4Xwg',
@@ -191,7 +191,7 @@ test('convert > createAuth > creates oauth1 auth', (t) => {
     oauth1: {
       consumerKey: 'consumer_key',
       consumerSecret: 'consumer_secret',
-      tokenSecret: 'token_secret123',
+      tokenSecret: '<<!tokenSecret>>',
       signatureMethod: 'HMAC-SHA256',
       nonceLength: 'lV4Xwg',
       useHeader: true

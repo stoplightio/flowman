@@ -7,8 +7,8 @@ import * as utils from './utils';
  * @return {object}
  */
 export const createRequestHeaders = (request) => {
-  const headers = {};
   const modeHeaders = utils.convertModeToHeader(_.get(request, 'body.mode'));
+  let headers = {};
 
   if (!_.isEmpty(request.header)) {
     request.header.forEach((header) => {
@@ -16,7 +16,7 @@ export const createRequestHeaders = (request) => {
     });
   }
 
-  return _.merge(headers, modeHeaders);
+  return utils.replaceVariables(_.merge(headers, modeHeaders));
 };
 
 /**
@@ -27,17 +27,20 @@ export const createRequestHeaders = (request) => {
 export const createRequestBody = (request) => {
   const mode = _.get(request, 'body.mode');
   const body = _.get(request, ['body', mode]);
+  let result;
 
   switch (mode) {
     case 'raw':
-      return body;
+      result = body;
+      break;
     case 'urlencoded':
     case 'formdata':
-      return body && body.length ? body.reduce((res, {key, value}) =>
+      result = body && body.length ? body.reduce((res, {key, value}) =>
         ({...res, [key]: value}), {}) : undefined;
-    default:
-      return;
+      break;
   }
+
+  return utils.replaceVariables(result);
 };
 
 /**
@@ -52,7 +55,7 @@ export const getURL = (url) => {
     result = url.raw;
   }
 
-  return utils.convertVariables(result || '');
+  return utils.replaceVariables(result || '');
 };
 
 /**
@@ -87,15 +90,17 @@ export const createRequest = (itemRequest) => {
 export const createAuth = (auth = {}) => {
   const {type} = auth;
   const authObj = auth[type];
+  let result;
 
   switch (type) {
     case 'basic':
-      return {
+      result = {
         type,
         [type]: _.pick(authObj, ['username', 'password'])
       };
+      break;
     case 'oauth1':
-      return {
+      result = {
         type,
         [type]: {
           ..._.pick(authObj, ['consumerKey', 'consumerSecret',
@@ -104,9 +109,14 @@ export const createAuth = (auth = {}) => {
           useHeader: authObj.addParamsToHeader
         }
       };
-    default:
-      return;
+      break;
   }
+
+  if (result) {
+    result[type] = utils.replaceVariables(result[type]);
+  }
+
+  return result;
 };
 
 export const createInput = (item) => {

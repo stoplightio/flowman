@@ -9,6 +9,21 @@ export const convertVariables = (str) => (
   _.isString(str) ? str.replace(/\{\{([^}]+)\}\}/g, '<<!$1>>') : str
 );
 
+export const replaceVariables = (source) => {
+  if (!_.isEmpty(source)) {
+    if (_.isString(source)) {
+      return convertVariables(source);
+    }
+
+    if (_.isObject(source)) {
+      return _.mapValues(source,
+        val => _.isString(val) ? convertVariables(val) : val);
+    }
+  }
+
+  return source;
+};
+
 /**
  * Converts Postman body to content type header.
  * @param mode - Postman mode.
