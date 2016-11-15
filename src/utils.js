@@ -15,7 +15,7 @@ export const replaceVariables = (source) => {
       return convertVariables(source);
     }
 
-    if (_.isObject(source)) {
+    if (_.isPlainObject(source)) {
       return _.mapValues(source,
         val => _.isString(val) ? convertVariables(val) : val);
     }
