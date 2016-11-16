@@ -12,6 +12,30 @@ test('utils > convertVariables > handles undefined input', (t) => {
   t.is(utils.convertVariables(), undefined);
 });
 
+test('utils > replaceVariables > replaces variables in string', (t) => {
+  t.is(utils.replaceVariables(
+    'http://example.com:{{var0}}/{{var1}}?foo={{var2}}'),
+    'http://example.com:<<!var0>>/<<!var1>>?foo=<<!var2>>'
+  );
+});
+
+test('utils > replaceVariables > replaces variables in object fields', (t) => {
+  t.deepEqual(
+    utils.replaceVariables({
+      foo: 'bar {{var0}}',
+      baz: 'bar {{var1}}',
+    }),
+    {
+      foo: 'bar <<!var0>>',
+      baz: 'bar <<!var1>>',
+    }
+  );
+});
+
+test('utils > replaceVariables > handles undefined input', (t) => {
+  t.is(utils.replaceVariables(), undefined);
+});
+
 test('utils > convertModeToHeader > returns content type object for formdata mode', (t) => {
   t.deepEqual(utils.convertModeToHeader('formdata'), {
     'Content-Type': 'application/x-www-form-urlencoded'

@@ -11,6 +11,11 @@ var convertVariables = function convertVariables(str) {
   return _.isString(str) ? str.replace(/\{\{([^}]+)\}\}/g, '<<!$1>>') : str;
 };
 
+/**
+ * Replaces variables in passed string or object fields.
+ * @param {object|string} source - data source.
+ * @return {object|string}
+ */
 var replaceVariables = function replaceVariables(source) {
   if (!_.isEmpty(source)) {
     if (_.isString(source)) {
@@ -302,8 +307,8 @@ var createRequestBody = function createRequestBody(request) {
     case 'urlencoded':
     case 'formdata':
       result = body && body.length ? body.reduce(function (res, _ref) {
-        var key = _ref.key;
-        var value = _ref.value;
+        var key = _ref.key,
+            value = _ref.value;
         return _extends({}, res, defineProperty({}, key, value));
       }, {}) : undefined;
       break;
@@ -386,6 +391,11 @@ var createAuth = function createAuth() {
   return result;
 };
 
+/**
+ * Creates Flow input object with request and auth.
+ * @param {object} item - Postman item.
+ * @return {object}
+ */
 var createInput = function createInput(item) {
   if (_.isEmpty(item.request)) {
     return null;
@@ -403,6 +413,12 @@ var createInput = function createInput(item) {
   return input;
 };
 
+/**
+ * Creates Flows script from passed item.
+ * @param {object} item - Postman item.
+ * @param {string} type - script type. Can be 'prerequest' or 'test'.
+ * @return {*}
+ */
 var createScript = function createScript(item, type) {
   var event = _.find(item.event, { listen: type });
 
@@ -422,6 +438,11 @@ var createScript = function createScript(item, type) {
   }
 };
 
+/**
+ * Creates Flow function object with input and before/after scripts.
+ * @param {object} item - Postman item.
+ * @return {object}
+ */
 var createFunction = function createFunction(item) {
   var fn = {
     input: createInput(item)
@@ -444,6 +465,11 @@ var createFunction = function createFunction(item) {
   return fn;
 };
 
+/**
+ * Creates Flow step with one function.
+ * @param {object} item - Postman item.
+ * @return {object}
+ */
 var createStep = function createStep() {
   var item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
@@ -452,6 +478,11 @@ var createStep = function createStep() {
   };
 };
 
+/**
+ * Creates Flow with steps.
+ * @param {object} item - Postman item.
+ * @return {object}
+ */
 var createFlow = function createFlow(item) {
   var flow = {
     name: item.name,
@@ -469,6 +500,11 @@ var createFlow = function createFlow(item) {
   return flow;
 };
 
+/**
+ * Converts Postman collection to FlowCollection.
+ * @param {object} collection - Postman collection.
+ * @return {object}
+ */
 var convert = function convert(collection) {
   if (_.isEmpty(collection)) {
     return [];

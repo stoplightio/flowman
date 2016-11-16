@@ -119,6 +119,11 @@ export const createAuth = (auth = {}) => {
   return result;
 };
 
+/**
+ * Creates Flow input object with request and auth.
+ * @param {object} item - Postman item.
+ * @return {object}
+ */
 export const createInput = (item) => {
   if (_.isEmpty(item.request)) {
     return null;
@@ -136,6 +141,12 @@ export const createInput = (item) => {
   return input;
 };
 
+/**
+ * Creates Flows script from passed item.
+ * @param {object} item - Postman item.
+ * @param {string} type - script type. Can be 'prerequest' or 'test'.
+ * @return {*}
+ */
 export const createScript = (item, type) => {
   const event = _.find(item.event, {listen: type});
 
@@ -154,6 +165,11 @@ export const createScript = (item, type) => {
   }
 };
 
+/**
+ * Creates Flow function object with input and before/after scripts.
+ * @param {object} item - Postman item.
+ * @return {object}
+ */
 export const createFunction = (item) => {
   const fn = {
     input: createInput(item)
@@ -176,12 +192,22 @@ export const createFunction = (item) => {
   return fn;
 };
 
+/**
+ * Creates Flow step with one function.
+ * @param {object} item - Postman item.
+ * @return {object}
+ */
 export const createStep = (item = {}) => {
   return {
     functions: [createFunction(item)]
   };
 };
 
+/**
+ * Creates Flow with steps.
+ * @param {object} item - Postman item.
+ * @return {object}
+ */
 export const createFlow = (item) => {
   const flow = {
     name: item.name,
@@ -199,6 +225,11 @@ export const createFlow = (item) => {
   return flow;
 };
 
+/**
+ * Converts Postman collection to FlowCollection.
+ * @param {object} collection - Postman collection.
+ * @return {object}
+ */
 export const convert = (collection) => {
   if (_.isEmpty(collection)) {
     return [];

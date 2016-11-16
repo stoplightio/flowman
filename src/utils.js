@@ -9,6 +9,11 @@ export const convertVariables = (str) => (
   _.isString(str) ? str.replace(/\{\{([^}]+)\}\}/g, '<<!$1>>') : str
 );
 
+/**
+ * Replaces variables in passed string or object fields.
+ * @param {object|string} source - data source.
+ * @return {object|string}
+ */
 export const replaceVariables = (source) => {
   if (!_.isEmpty(source)) {
     if (_.isString(source)) {
