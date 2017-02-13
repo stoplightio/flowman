@@ -1,7 +1,7 @@
 import test from 'ava';
 import * as convert from './convert';
 
-test('convert > createRequestHeaders > returns headers with body content type', (t) => {
+test('createRequestHeaders > returns headers with body content type', (t) => {
   const headers = convert.createRequestHeaders({
     header: [{
       key: 'Authorization',
@@ -14,12 +14,12 @@ test('convert > createRequestHeaders > returns headers with body content type', 
   });
 
   t.deepEqual(headers, {
-    'Authorization': 'Bearer <<!TOKEN>>',
+    'Authorization': 'Bearer {$.ctx.TOKEN}',
     'Content-Type': 'application/x-www-form-urlencoded'
   });
 });
 
-test('convert > createRequestHeaders > returns body content type header', (t) => {
+test('createRequestHeaders > returns body content type header', (t) => {
   const headers = convert.createRequestHeaders({
     body: {
       mode: 'urlencoded',
@@ -30,7 +30,7 @@ test('convert > createRequestHeaders > returns body content type header', (t) =>
   t.deepEqual(headers, {'Content-Type': 'application/x-www-form-urlencoded'});
 });
 
-test('convert > createRequestBody > returns raw body with replaced variables', (t) => {
+test('createRequestBody > returns raw body with replaced variables', (t) => {
   const body = convert.createRequestBody({
     body: {
       mode: 'raw',
@@ -38,10 +38,10 @@ test('convert > createRequestBody > returns raw body with replaced variables', (
     }
   });
 
-  t.deepEqual(body, 'test string <<!var0>>');
+  t.deepEqual(body, 'test string {$.ctx.var0}');
 });
 
-test('convert > createRequestBody > returns urlencoded body with replaced variables', (t) => {
+test('createRequestBody > returns urlencoded body with replaced variables', (t) => {
   const body = convert.createRequestBody({
     body: {
       mode: 'urlencoded',
@@ -52,10 +52,10 @@ test('convert > createRequestBody > returns urlencoded body with replaced variab
     }
   });
 
-  t.deepEqual(body, {foo: 'bar <<!var0>>'});
+  t.deepEqual(body, {foo: 'bar {$.ctx.var0}'});
 });
 
-test('convert > createRequestBody > returns formdata body with replaced variables', (t) => {
+test('createRequestBody > returns formdata body with replaced variables', (t) => {
   const body = convert.createRequestBody({
     body: {
       mode: 'formdata',
@@ -66,24 +66,24 @@ test('convert > createRequestBody > returns formdata body with replaced variable
     }
   });
 
-  t.deepEqual(body, {foo: 'bar <<!var0>>'});
+  t.deepEqual(body, {foo: 'bar {$.ctx.var0}'});
 });
 
-test('convert > getURL > returns URL parsed from string', (t) => {
+test('getURL > returns URL parsed from string', (t) => {
   const url = convert.getURL('http://example.com:{{var0}}/post');
 
-  t.is(url, 'http://example.com:<<!var0>>/post');
+  t.is(url, 'http://example.com:{$.ctx.var0}/post');
 });
 
-test('convert > getURL > returns URL parsed from object', (t) => {
+test('getURL > returns URL parsed from object', (t) => {
   const url = convert.getURL({
     raw: 'http://example.com:{{var0}}/post',
   });
 
-  t.is(url, 'http://example.com:<<!var0>>/post');
+  t.is(url, 'http://example.com:{$.ctx.var0}/post');
 });
 
-test('convert > createRequest > creates Flow request', (t) => {
+test('createRequest > creates request', (t) => {
   const request = convert.createRequest({
     url: 'http://example.com:{{var0}}/post',
     method: 'POST',
@@ -102,7 +102,7 @@ test('convert > createRequest > creates Flow request', (t) => {
 
   t.deepEqual(request, {
     method: 'post',
-    url: 'http://example.com:<<!var0>>/post',
+    url: 'http://example.com:{$.ctx.var0}/post',
     headers: {
       Authorization: 'Bearer TOKEN',
       'Content-Type': 'application/x-www-form-urlencoded'
@@ -113,7 +113,7 @@ test('convert > createRequest > creates Flow request', (t) => {
   });
 });
 
-test('convert > createRequest > creates request with content type headers', (t) => {
+test('createRequest > creates request with content type headers', (t) => {
   const request = convert.createRequest({
     url: 'http://example.com:{{var0}}/post',
     method: 'POST',
@@ -128,7 +128,7 @@ test('convert > createRequest > creates request with content type headers', (t) 
 
   t.deepEqual(request, {
     method: 'post',
-    url: 'http://example.com:<<!var0>>/post',
+    url: 'http://example.com:{$.ctx.var0}/post',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     },
@@ -138,7 +138,7 @@ test('convert > createRequest > creates request with content type headers', (t) 
   });
 });
 
-test('convert > createRequest > creates request without body and headers', (t) => {
+test('createRequest > creates request without body and headers', (t) => {
   const request = convert.createRequest({
     url: 'http://example.com:{{var0}}/post',
     method: 'POST'
@@ -146,11 +146,11 @@ test('convert > createRequest > creates request without body and headers', (t) =
 
   t.deepEqual(request, {
     method: 'post',
-    url: 'http://example.com:<<!var0>>/post'
+    url: 'http://example.com:{$.ctx.var0}/post'
   });
 });
 
-test('convert > createAuth > creates basic auth with replaced variables', (t) => {
+test('createAuth > creates basic auth with replaced variables', (t) => {
   const auth = convert.createAuth({
     type: 'basic',
     basic: {
@@ -161,14 +161,12 @@ test('convert > createAuth > creates basic auth with replaced variables', (t) =>
 
   t.deepEqual(auth, {
     type: 'basic',
-    basic: {
-      username: '<<!username>>',
-      password: 'password'
-    }
+    username: '{$.ctx.username}',
+    password: 'password'
   });
 });
 
-test('convert > createAuth > creates oauth1 auth with replaced variables', (t) => {
+test('createAuth > creates oauth1 auth with replaced variables', (t) => {
   const auth = convert.createAuth({
     type: 'oauth1',
     oauth1: {
@@ -188,18 +186,17 @@ test('convert > createAuth > creates oauth1 auth with replaced variables', (t) =
 
   t.deepEqual(auth, {
     type: 'oauth1',
-    oauth1: {
-      consumerKey: 'consumer_key',
-      consumerSecret: 'consumer_secret',
-      tokenSecret: '<<!tokenSecret>>',
-      signatureMethod: 'HMAC-SHA256',
-      nonceLength: 'lV4Xwg',
-      useHeader: true
-    }
+    consumerKey: 'consumer_key',
+    consumerSecret: 'consumer_secret',
+    token: 'token1111',
+    tokenSecret: '{$.ctx.tokenSecret}',
+    signatureMethod: 'HMAC-SHA256',
+    nonceLength: 'lV4Xwg',
+    useHeader: true
   });
 });
 
-test('convert > createAuth > creates basic auth', (t) => {
+test('createAuth > creates basic auth', (t) => {
   const auth = convert.createAuth({
     type: 'basic',
     basic: {
@@ -210,26 +207,22 @@ test('convert > createAuth > creates basic auth', (t) => {
 
   t.deepEqual(auth, {
     type: 'basic',
-    basic: {
-      username: 'user',
-      password: 'password'
-    }
+    username: 'user',
+    password: 'password'
   });
 });
 
-test('convert > createAuth > returns undefined for unsupported auth', (t) => {
+test('createAuth > returns undefined for unsupported auth type', (t) => {
   const auth = convert.createAuth({
     type: 'unsupported',
-    unsupported: {
-      username: 'user',
-      password: 'password'
-    }
+    username: 'user',
+    password: 'password'
   });
 
   t.is(auth, undefined);
 });
 
-test('convert > createInput > creates input', (t) => {
+test('createInput > creates input', (t) => {
   const input = convert.createInput({
     request: {
       url: 'http://example.com:{{var0}}/post',
@@ -245,26 +238,22 @@ test('convert > createInput > creates input', (t) => {
   });
 
   t.deepEqual(input, {
-    request: {
-      method: 'post',
-      url: 'http://example.com:<<!var0>>/post'
-    },
-    authorization: {
+    method: 'post',
+    url: 'http://example.com:{$.ctx.var0}/post',
+    auth: {
       type: 'basic',
-      basic: {
-        username: 'user',
-        password: 'password'
-      }
+      username: 'user',
+      password: 'password'
     }
   });
 });
 
-test('convert > createInput > handles undefined input', (t) => {
+test('createInput > handles undefined input', (t) => {
   t.is(convert.createInput({}), null);
 });
 
-test('convert > createScript > creates before script from array exec', (t) => {
-  const script = convert.createScript({
+test('createLogic > creates before script from array exec', (t) => {
+  const logic = convert.createLogic({
     event: [
       {
         listen: 'prerequest',
@@ -276,13 +265,13 @@ test('convert > createScript > creates before script from array exec', (t) => {
     ]
   }, 'prerequest');
 
-  t.deepEqual(script, {
+  t.deepEqual(logic, {
     script: 'postman.clearGlobalVariable("variable_key");'
   });
 });
 
-test('convert > createScript > creates after script from string exec', (t) => {
-  const script = convert.createScript({
+test('createLogic > creates after script from string exec', (t) => {
+  const logic = convert.createLogic({
     event: [
       {
         listen: 'test',
@@ -294,75 +283,18 @@ test('convert > createScript > creates after script from string exec', (t) => {
     ]
   }, 'test');
 
-  t.deepEqual(script, {
+  t.deepEqual(logic, {
     script: 'tests["Body contains headers"] = responseBody.has("headers");'
   });
 });
 
-test('convert > createScript > handles undefined input', (t) => {
-  const script = convert.createScript({event: []}, 'test');
+test('createLogic > handles undefined input', (t) => {
+  const logic = convert.createLogic({event: []}, 'test');
 
-  t.is(script, undefined);
+  t.is(logic, undefined);
 });
 
-test('convert > createFunction > creates function', (t) => {
-  const fn = convert.createFunction({
-    name: 'Test Item',
-    request: {
-      url: 'http://example.com:{{var0}}/post',
-      method: 'POST',
-      auth: {
-        type: 'basic',
-        basic: {
-          username: 'user',
-          password: 'password'
-        }
-      }
-    },
-    event: [
-      {
-        listen: 'prerequest',
-        script: {
-          type: 'text/javascript',
-          exec: ['postman.clearGlobalVariable("variable_key");']
-        }
-      },
-      {
-        listen: 'test',
-        script: {
-          type: 'text/javascript',
-          exec: 'tests["Body contains headers"] = responseBody.has("headers");'
-        }
-      }
-    ]
-  });
-
-  t.deepEqual(fn, {
-      name: 'Test Item',
-      input: {
-        request: {
-          method: 'post',
-          url: 'http://example.com:<<!var0>>/post'
-        },
-        authorization: {
-          type: 'basic',
-          basic: {
-            username: 'user',
-            password: 'password'
-          }
-        }
-      },
-      before: {
-        script: 'postman.clearGlobalVariable("variable_key");'
-      },
-      after: {
-        script: 'tests["Body contains headers"] = responseBody.has("headers");'
-      }
-    }
-  );
-});
-
-test('convert > createStep > creates step with one function', (t) => {
+test('createStep > creates step', (t) => {
   const step = convert.createStep({
     name: 'Test Item',
     request: {
@@ -395,41 +327,35 @@ test('convert > createStep > creates step with one function', (t) => {
   });
 
   t.deepEqual(step, {
-    functions: [{
-      name: 'Test Item',
-      input: {
-        request: {
-          method: 'post',
-          url: 'http://example.com:<<!var0>>/post'
-        },
-        authorization: {
-          type: 'basic',
-          basic: {
-            username: 'user',
-            password: 'password'
-          }
-        }
-      },
-      before: {
-        script: 'postman.clearGlobalVariable("variable_key");'
-      },
-      after: {
-        script: 'tests["Body contains headers"] = responseBody.has("headers");'
+    type: 'http',
+    name: 'Test Item',
+    input: {
+      method: 'post',
+      url: 'http://example.com:{$.ctx.var0}/post',
+      auth: {
+        type: 'basic',
+        username: 'user',
+        password: 'password'
       }
-    }]
+    },
+    before: {
+      script: 'postman.clearGlobalVariable("variable_key");'
+    },
+    after: {
+      script: 'tests["Body contains headers"] = responseBody.has("headers");'
+    }
   });
 });
 
-test('convert > createStep > handles undefined input', (t) => {
+test('createStep > handles undefined input', (t) => {
   t.deepEqual(convert.createStep(), {
-    functions: [{
-      input: null
-    }]
+    type: 'http',
+    name: ''
   });
 });
 
-test('convert > createFlow > creates flow with one step', (t) => {
-  const flow = convert.createFlow({
+test('createScenario > creates scenario with one step', (t) => {
+  const scenario = convert.createScenario({
     name: 'Test Item',
     request: {
       url: 'http://example.com:{{var0}}/post',
@@ -444,33 +370,27 @@ test('convert > createFlow > creates flow with one step', (t) => {
     }
   });
 
-  t.deepEqual(flow, {
+  t.deepEqual(scenario, {
     name: 'Test Item',
-    flowVersion: '1.0',
-    resourceId: 'test-item',
+    description: '',
     steps: [{
-      functions: [{
-        name: 'Test Item',
-        input: {
-          request: {
-            method: 'post',
-            url: 'http://example.com:<<!var0>>/post'
-          },
-          authorization: {
-            type: 'basic',
-            basic: {
-              username: 'user',
-              password: 'password'
-            }
-          }
+      type: 'http',
+      name: 'Test Item',
+      input: {
+        method: 'post',
+        url: 'http://example.com:{$.ctx.var0}/post',
+        auth: {
+          type: 'basic',
+          username: 'user',
+          password: 'password'
         }
-      }]
+      }
     }]
   });
 });
 
-test('convert > createFlow > creates flow with multiple steps', (t) => {
-  const flow = convert.createFlow({
+test('createScenario > creates scenario with multiple steps', (t) => {
+  const scenario = convert.createScenario({
     name: 'Test Item',
     item: [
       {
@@ -490,39 +410,32 @@ test('convert > createFlow > creates flow with multiple steps', (t) => {
     ]
   });
 
-  t.deepEqual(flow, {
+  t.deepEqual(scenario, {
       name: 'Test Item',
-      flowVersion: '1.0',
-      resourceId: 'test-item',
+      description: '',
       steps: [
         {
-          functions: [{
-            name: 'Test Subitem 1',
-            input: {
-              request: {
-                method: 'get',
-                url: 'http://example.com:<<!var0>>'
-              }
-            }
-          }]
+          type: 'http',
+          name: 'Test Subitem 1',
+          input: {
+            method: 'get',
+            url: 'http://example.com:{$.ctx.var0}'
+          }
         },
         {
-          functions: [{
-            name: 'Test Subitem 2',
-            input: {
-              request: {
-                method: 'post',
-                url: 'http://example.com:<<!var0>>/post'
-              }
-            }
-          }]
+          type: 'http',
+          name: 'Test Subitem 2',
+          input: {
+            method: 'post',
+            url: 'http://example.com:{$.ctx.var0}/post'
+          }
         }
       ]
     }
   );
 });
 
-test('convert > convert > creates flow collection', (t) => {
+test('creates scenario collection', (t) => {
   const collection = convert.convert({
     info: {
       name: 'Test collection',
@@ -530,9 +443,12 @@ test('convert > convert > creates flow collection', (t) => {
     item: []
   });
 
-  t.deepEqual(collection, {name: 'Test collection', flows: []});
+  t.deepEqual(collection, {
+    name: 'Test collection',
+    scenarios: []
+  });
 });
 
-test('convert > convert > handles undefined input', (t) => {
+test('handles undefined input', (t) => {
   t.deepEqual(convert.convert(), []);
 });

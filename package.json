@@ -1,7 +1,7 @@
 {
   "name": "@stoplight/flowman",
-  "version": "1.0.3",
-  "description": "Turns Postman collections into Stoplight flows.",
+  "version": "1.1.0",
+  "description": "Turns Postman collections into Stoplight Scenarios.",
   "repository": {
     "type": "git",
     "url": "git://github.com/stoplightio/flowman.git"

@@ -3,12 +3,12 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 var _ = _interopDefault(require('lodash'));
 
 /**
- * Transforms variables from Postman to Flows format.
+ * Transforms variables from Postman to Scenario format.
  * @param {string} str - string to transform.
  * @return {string}
  */
 var convertVariables = function convertVariables(str) {
-  return _.isString(str) ? str.replace(/\{\{([^}]+)\}\}/g, '<<!$1>>') : str;
+  return _.isString(str) ? str.replace(/\{\{([^}]+)\}\}/g, '{$.ctx.$1}') : str;
 };
 
 /**
@@ -333,12 +333,13 @@ var getURL = function getURL(url) {
 };
 
 /**
- * Creates Flow request from passed Postman request.
+ * Creates Scenario request from passed Postman request.
  * @param itemRequest - Postman request.
  * @return {object}
  */
 var createRequest = function createRequest(itemRequest) {
   var request = {
+    // TODO filter methods according to https://help.stoplight.io/scenarios/http/input
     method: itemRequest.method.toLowerCase(),
     url: getURL(itemRequest.url)
   };
@@ -357,7 +358,7 @@ var createRequest = function createRequest(itemRequest) {
 };
 
 /**
- * Creates Flow auth object from Postman auth object.
+ * Creates Scenario auth object from Postman auth object.
  * @param {object} auth - Postman auth object.
  * @return {object}
  */
@@ -370,29 +371,27 @@ var createAuth = function createAuth() {
 
   switch (type) {
     case 'basic':
-      result = defineProperty({
-        type: type
-      }, type, _.pick(authObj, ['username', 'password']));
+      result = _.pick(authObj, ['username', 'password']);
       break;
     case 'oauth1':
-      result = defineProperty({
-        type: type
-      }, type, _extends({}, _.pick(authObj, ['consumerKey', 'consumerSecret', 'tokenSecret', 'signatureMethod']), {
+      result = _extends({}, _.pick(authObj, ['consumerKey', 'consumerSecret', 'token', 'tokenSecret', 'signatureMethod']), {
         nonceLength: authObj.nonce,
         useHeader: authObj.addParamsToHeader
-      }));
+      });
       break;
   }
 
   if (result) {
-    result[type] = replaceVariables(result[type]);
+    result = _extends({
+      type: type
+    }, replaceVariables(result));
   }
 
   return result;
 };
 
 /**
- * Creates Flow input object with request and auth.
+ * Creates Scenario Input object.
  * @param {object} item - Postman item.
  * @return {object}
  */
@@ -401,25 +400,24 @@ var createInput = function createInput(item) {
     return null;
   }
 
-  var input = {
-    request: createRequest(item.request)
-  };
+  var request = createRequest(item.request);
   var auth = createAuth(item.request.auth);
+  var input = Object.assign({}, request);
 
   if (auth) {
-    input.authorization = auth;
+    input.auth = auth;
   }
 
   return input;
 };
 
 /**
- * Creates Flows script from passed item.
+ * Creates Scenarios Logic from passed item.
  * @param {object} item - Postman item.
  * @param {string} type - script type. Can be 'prerequest' or 'test'.
  * @return {*}
  */
-var createScript = function createScript(item, type) {
+var createLogic = function createLogic(item, type) {
   var event = _.find(item.event, { listen: type });
 
   if (event) {
@@ -439,69 +437,59 @@ var createScript = function createScript(item, type) {
 };
 
 /**
- * Creates Flow function object with input and before/after scripts.
- * @param {object} item - Postman item.
- * @return {object}
- */
-var createFunction = function createFunction(item) {
-  var fn = {
-    input: createInput(item)
-  };
-  var before = createScript(item, 'prerequest');
-  var after = createScript(item, 'test');
-
-  if (item.name) {
-    fn.name = item.name;
-  }
-
-  if (before) {
-    fn.before = before;
-  }
-
-  if (after) {
-    fn.after = after;
-  }
-
-  return fn;
-};
-
-/**
- * Creates Flow step with one function.
+ * Creates Scenario Step.
  * @param {object} item - Postman item.
  * @return {object}
  */
 var createStep = function createStep() {
   var item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
-  return {
-    functions: [createFunction(item)]
+  var step = {
+    type: 'http',
+    name: item.name || ''
   };
+  var input = createInput(item);
+  var before = createLogic(item, 'prerequest');
+  var after = createLogic(item, 'test');
+
+  if (input) {
+    step.input = input;
+  }
+
+  if (before) {
+    step.before = before;
+  }
+
+  if (after) {
+    step.after = after;
+  }
+
+  return step;
 };
 
 /**
- * Creates Flow with steps.
+ * Creates Scenario with steps.
  * @param {object} item - Postman item.
  * @return {object}
  */
-var createFlow = function createFlow(item) {
-  var flow = {
-    name: item.name,
-    flowVersion: '1.0',
-    resourceId: _.kebabCase(item.name),
+var createScenario = function createScenario(item) {
+  var scenario = {
+    name: item.name || '',
+    description: item.description || '',
     steps: []
   };
 
   if (_.isArray(item.item)) {
-    flow.steps = item.item.map(createStep);
+    scenario.steps = item.item.map(createStep);
   } else {
-    flow.steps.push(createStep(item));
+    scenario.steps.push(createStep(item));
   }
 
-  return flow;
+  return scenario;
 };
 
 /**
- * Converts Postman collection to FlowCollection.
+ * Converts Postman collection to Collection.
  * @param {object} collection - Postman collection.
  * @return {object}
  */
@@ -512,7 +500,7 @@ var convert = function convert(collection) {
 
   return {
     name: _.get(collection, 'info.name') || '',
-    flows: collection.item.map(createFlow)
+    scenarios: collection.item.map(createScenario)
   };
 };
 

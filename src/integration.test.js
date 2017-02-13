@@ -3,8 +3,8 @@ import {convert} from './convert';
 import cases from './integration.test-cases';
 
 for (const c of cases) {
-  test(`convert > ${c.name}`, (t) => {
+  test(`${c.name}`, (t) => {
     const result = convert(c.collection);
-    t.deepEqual(c.flows, result);
+    t.deepEqual(c.scenarios, result);
   });
 }

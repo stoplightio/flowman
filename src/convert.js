@@ -36,7 +36,7 @@ export const createRequestBody = (request) => {
     case 'urlencoded':
     case 'formdata':
       result = body && body.length ? body.reduce((res, {key, value}) =>
-        ({...res, [key]: value}), {}) : undefined;
+          ({...res, [key]: value}), {}) : undefined;
       break;
   }
 
@@ -59,12 +59,13 @@ export const getURL = (url) => {
 };
 
 /**
- * Creates Flow request from passed Postman request.
+ * Creates Scenario request from passed Postman request.
  * @param itemRequest - Postman request.
  * @return {object}
  */
 export const createRequest = (itemRequest) => {
   const request = {
+    // TODO filter methods according to https://help.stoplight.io/scenarios/http/input
     method: itemRequest.method.toLowerCase(),
     url: getURL(itemRequest.url)
   };
@@ -83,7 +84,7 @@ export const createRequest = (itemRequest) => {
 };
 
 /**
- * Creates Flow auth object from Postman auth object.
+ * Creates Scenario auth object from Postman auth object.
  * @param {object} auth - Postman auth object.
  * @return {object}
  */
@@ -94,33 +95,30 @@ export const createAuth = (auth = {}) => {
 
   switch (type) {
     case 'basic':
-      result = {
-        type,
-        [type]: _.pick(authObj, ['username', 'password'])
-      };
+      result = _.pick(authObj, ['username', 'password']);
       break;
     case 'oauth1':
       result = {
-        type,
-        [type]: {
-          ..._.pick(authObj, ['consumerKey', 'consumerSecret',
-            'tokenSecret', 'signatureMethod']),
-          nonceLength: authObj.nonce,
-          useHeader: authObj.addParamsToHeader
-        }
+        ..._.pick(authObj, ['consumerKey', 'consumerSecret', 'token',
+          'tokenSecret', 'signatureMethod']),
+        nonceLength: authObj.nonce,
+        useHeader: authObj.addParamsToHeader
       };
       break;
   }
 
   if (result) {
-    result[type] = utils.replaceVariables(result[type]);
+    result = {
+      type,
+      ...utils.replaceVariables(result),
+    };
   }
 
   return result;
 };
 
 /**
- * Creates Flow input object with request and auth.
+ * Creates Scenario Input object.
  * @param {object} item - Postman item.
  * @return {object}
  */
@@ -129,25 +127,24 @@ export const createInput = (item) => {
     return null;
   }
 
-  const input = {
-    request: createRequest(item.request)
-  };
+  const request = createRequest(item.request);
   const auth = createAuth(item.request.auth);
+  const input = Object.assign({}, request);
 
   if (auth) {
-    input.authorization = auth;
+    input.auth = auth;
   }
 
   return input;
 };
 
 /**
- * Creates Flows script from passed item.
+ * Creates Scenarios Logic from passed item.
  * @param {object} item - Postman item.
  * @param {string} type - script type. Can be 'prerequest' or 'test'.
  * @return {*}
  */
-export const createScript = (item, type) => {
+export const createLogic = (item, type) => {
   const event = _.find(item.event, {listen: type});
 
   if (event) {
@@ -166,67 +163,57 @@ export const createScript = (item, type) => {
 };
 
 /**
- * Creates Flow function object with input and before/after scripts.
- * @param {object} item - Postman item.
- * @return {object}
- */
-export const createFunction = (item) => {
-  const fn = {
-    input: createInput(item)
-  };
-  const before = createScript(item, 'prerequest');
-  const after = createScript(item, 'test');
-
-  if (item.name) {
-    fn.name = item.name;
-  }
-
-  if (before) {
-    fn.before = before;
-  }
-
-  if (after) {
-    fn.after = after;
-  }
-
-  return fn;
-};
-
-/**
- * Creates Flow step with one function.
+ * Creates Scenario Step.
  * @param {object} item - Postman item.
  * @return {object}
  */
 export const createStep = (item = {}) => {
-  return {
-    functions: [createFunction(item)]
+  const step = {
+    type: 'http',
+    name: item.name || '',
   };
+  const input = createInput(item);
+  const before = createLogic(item, 'prerequest');
+  const after = createLogic(item, 'test');
+
+  if (input) {
+    step.input = input;
+  }
+
+  if (before) {
+    step.before = before;
+  }
+
+  if (after) {
+    step.after = after;
+  }
+
+  return step;
 };
 
 /**
- * Creates Flow with steps.
+ * Creates Scenario with steps.
  * @param {object} item - Postman item.
  * @return {object}
  */
-export const createFlow = (item) => {
-  const flow = {
-    name: item.name,
-    flowVersion: '1.0',
-    resourceId: _.kebabCase(item.name),
+export const createScenario = (item) => {
+  const scenario = {
+    name: item.name || '',
+    description: item.description || '',
     steps: [],
   };
 
   if (_.isArray(item.item)) {
-    flow.steps = item.item.map(createStep);
+    scenario.steps = item.item.map(createStep);
   } else {
-    flow.steps.push(createStep(item));
+    scenario.steps.push(createStep(item));
   }
 
-  return flow;
+  return scenario;
 };
 
 /**
- * Converts Postman collection to FlowCollection.
+ * Converts Postman collection to Collection.
  * @param {object} collection - Postman collection.
  * @return {object}
  */
@@ -237,6 +224,6 @@ export const convert = (collection) => {
 
   return {
     name: _.get(collection, 'info.name') || '',
-    flows: collection.item.map(createFlow)
+    scenarios: collection.item.map(createScenario)
   };
 };

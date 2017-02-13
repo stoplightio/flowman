@@ -3,7 +3,7 @@ const buildCases = () => {
     {
       name: 'empty object',
       collection: {},
-      flows: [],
+      scenarios: [],
     }
   ];
 };

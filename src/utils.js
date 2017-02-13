@@ -1,12 +1,12 @@
 import _ from 'lodash';
 
 /**
- * Transforms variables from Postman to Flows format.
+ * Transforms variables from Postman to Scenario format.
  * @param {string} str - string to transform.
  * @return {string}
  */
 export const convertVariables = (str) => (
-  _.isString(str) ? str.replace(/\{\{([^}]+)\}\}/g, '<<!$1>>') : str
+  _.isString(str) ? str.replace(/\{\{([^}]+)\}\}/g, '{$.ctx.$1}') : str
 );
 
 /**
