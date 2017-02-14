@@ -60,31 +60,6 @@ export const getURL = (url) => {
 };
 
 /**
- * Creates Scenario request from passed Postman request.
- * @param itemRequest - Postman request.
- * @return {object}
- */
-export const createRequest = (itemRequest) => {
-  const request = {
-    // TODO filter methods according to https://help.stoplight.io/scenarios/http/input
-    method: itemRequest.method.toLowerCase(),
-    url: getURL(itemRequest.url)
-  };
-  const headers = createRequestHeaders(itemRequest);
-  const body = createRequestBody(itemRequest);
-
-  if (!_.isEmpty(headers)) {
-    request.headers = headers;
-  }
-
-  if (!_.isUndefined(body)) {
-    request.body = body;
-  }
-
-  return request;
-};
-
-/**
  * Creates Scenario auth object from Postman auth object.
  * @param {object} auth - Postman auth object.
  * @return {object}
@@ -123,14 +98,25 @@ export const createAuth = (auth = {}) => {
  * @param {object} item - Postman item.
  * @return {object}
  */
-export const createInput = (item) => {
-  if (_.isEmpty(item.request)) {
-    return null;
+export const createInput = ({request = {}} = {}) => {
+  const allowedMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
+  const method = _.lowerCase(request.method);
+  const input = {
+    method: allowedMethods.includes(method) ? method : 'get',
+    url: getURL(request.url),
+  };
+
+  const headers = createRequestHeaders(request);
+  const body = createRequestBody(request);
+  const auth = createAuth(request.auth);
+
+  if (!_.isEmpty(headers)) {
+    input.headers = headers;
   }
 
-  const request = createRequest(item.request);
-  const auth = createAuth(item.request.auth);
-  const input = Object.assign({}, request);
+  if (!_.isUndefined(body)) {
+    input.body = body;
+  }
 
   if (auth) {
     input.auth = auth;
@@ -173,14 +159,10 @@ export const createStep = (item = {}) => {
     id: shortid.generate().substring(0, 3).toLowerCase(),
     type: 'http',
     name: item.name || '',
+    input: createInput(item)
   };
-  const input = createInput(item);
   const before = createLogic(item, 'prerequest');
   const after = createLogic(item, 'test');
-
-  if (input) {
-    step.input = input;
-  }
 
   if (before) {
     step.before = before;

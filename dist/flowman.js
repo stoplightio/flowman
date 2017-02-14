@@ -1,4 +1,6 @@
-var flowman = (function () {
+var flowman = (function (crypto) {
+crypto = 'default' in crypto ? crypto['default'] : crypto;
+
 var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 
@@ -9659,6 +9661,295 @@ else if(freeModule){// Export for Node.js.
 freeExports._=_;}else{// Export to the global object.
 root._=_;}}).call(commonjsGlobal);});
 
+// Found this seed-based random generator somewhere
+// Based on The Central Randomizer 1.3 (C) 1997 by Paul Houle (houle@msc.cornell.edu)
+
+var seed$1 = 1;
+
+/**
+ * return a random number based on a seed
+ * @param seed
+ * @returns {number}
+ */
+function getNextValue() {
+    seed$1 = (seed$1 * 9301 + 49297) % 233280;
+    return seed$1 / 233280.0;
+}
+
+function setSeed$1(_seed_) {
+    seed$1 = _seed_;
+}
+
+var randomFromSeed$1 = {
+    nextValue: getNextValue,
+    seed: setSeed$1
+};
+
+var randomFromSeed = randomFromSeed$1;
+
+var ORIGINAL = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
+var alphabet;
+var previousSeed;
+
+var shuffled;
+
+function reset() {
+    shuffled = false;
+}
+
+function setCharacters(_alphabet_) {
+    if (!_alphabet_) {
+        if (alphabet !== ORIGINAL) {
+            alphabet = ORIGINAL;
+            reset();
+        }
+        return;
+    }
+
+    if (_alphabet_ === alphabet) {
+        return;
+    }
+
+    if (_alphabet_.length !== ORIGINAL.length) {
+        throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. You submitted ' + _alphabet_.length + ' characters: ' + _alphabet_);
+    }
+
+    var unique = _alphabet_.split('').filter(function (item, ind, arr) {
+        return ind !== arr.lastIndexOf(item);
+    });
+
+    if (unique.length) {
+        throw new Error('Custom alphabet for shortid must be ' + ORIGINAL.length + ' unique characters. These characters were not unique: ' + unique.join(', '));
+    }
+
+    alphabet = _alphabet_;
+    reset();
+}
+
+function characters$1(_alphabet_) {
+    setCharacters(_alphabet_);
+    return alphabet;
+}
+
+function setSeed(seed) {
+    randomFromSeed.seed(seed);
+    if (previousSeed !== seed) {
+        reset();
+        previousSeed = seed;
+    }
+}
+
+function shuffle() {
+    if (!alphabet) {
+        setCharacters(ORIGINAL);
+    }
+
+    var sourceArray = alphabet.split('');
+    var targetArray = [];
+    var r = randomFromSeed.nextValue();
+    var characterIndex;
+
+    while (sourceArray.length > 0) {
+        r = randomFromSeed.nextValue();
+        characterIndex = Math.floor(r * sourceArray.length);
+        targetArray.push(sourceArray.splice(characterIndex, 1)[0]);
+    }
+    return targetArray.join('');
+}
+
+function getShuffled() {
+    if (shuffled) {
+        return shuffled;
+    }
+    shuffled = shuffle();
+    return shuffled;
+}
+
+/**
+ * lookup shuffled letter
+ * @param index
+ * @returns {string}
+ */
+function lookup(index) {
+    var alphabetShuffled = getShuffled();
+    return alphabetShuffled[index];
+}
+
+var alphabet_1 = {
+    characters: characters$1,
+    seed: setSeed,
+    lookup: lookup,
+    shuffled: getShuffled
+};
+
+var crypto$1 = crypto;
+var randomBytes = crypto$1.randomBytes;
+
+function randomByte$1() {
+    return randomBytes(1)[0] & 0x30;
+}
+
+var randomByte_1 = randomByte$1;
+
+var randomByte = randomByte_1;
+
+function encode(lookup, number) {
+    var loopCounter = 0;
+    var done;
+
+    var str = '';
+
+    while (!done) {
+        str = str + lookup(number >> 4 * loopCounter & 0x0f | randomByte());
+        done = number < Math.pow(16, loopCounter + 1);
+        loopCounter++;
+    }
+    return str;
+}
+
+var encode_1 = encode;
+
+var alphabet$1 = alphabet_1;
+
+/**
+ * Decode the id to get the version and worker
+ * Mainly for debugging and testing.
+ * @param id - the shortid-generated id.
+ */
+function decode$1(id) {
+    var characters = alphabet$1.shuffled();
+    return {
+        version: characters.indexOf(id.substr(0, 1)) & 0x0f,
+        worker: characters.indexOf(id.substr(1, 1)) & 0x0f
+    };
+}
+
+var decode_1 = decode$1;
+
+var alphabet$2 = alphabet_1;
+
+function isShortId(id) {
+    if (!id || typeof id !== 'string' || id.length < 6) {
+        return false;
+    }
+
+    var characters = alphabet$2.characters();
+    var len = id.length;
+    for (var i = 0; i < len; i++) {
+        if (characters.indexOf(id[i]) === -1) {
+            return false;
+        }
+    }
+    return true;
+}
+
+var isValid$1 = isShortId;
+
+var clusterWorkerId = parseInt(process.env.NODE_UNIQUE_ID || 0, 10);
+
+var index$2 = createCommonjsModule(function (module) {
+    'use strict';
+
+    var alphabet = alphabet_1;
+    var encode = encode_1;
+    var decode = decode_1;
+    var isValid = isValid$1;
+
+    // Ignore all milliseconds before a certain time to reduce the size of the date entropy without sacrificing uniqueness.
+    // This number should be updated every year or so to keep the generated id short.
+    // To regenerate `new Date() - 0` and bump the version. Always bump the version!
+    var REDUCE_TIME = 1459707606518;
+
+    // don't change unless we change the algos or REDUCE_TIME
+    // must be an integer and less than 16
+    var version = 6;
+
+    // if you are using cluster or multiple servers use this to make each instance
+    // has a unique value for worker
+    // Note: I don't know if this is automatically set when using third
+    // party cluster solutions such as pm2.
+    var clusterWorkerId$$1 = clusterWorkerId || 0;
+
+    // Counter is used when shortid is called multiple times in one second.
+    var counter;
+
+    // Remember the last time shortid was called in case counter is needed.
+    var previousSeconds;
+
+    /**
+     * Generate unique id
+     * Returns string id
+     */
+    function generate() {
+
+        var str = '';
+
+        var seconds = Math.floor((Date.now() - REDUCE_TIME) * 0.001);
+
+        if (seconds === previousSeconds) {
+            counter++;
+        } else {
+            counter = 0;
+            previousSeconds = seconds;
+        }
+
+        str = str + encode(alphabet.lookup, version);
+        str = str + encode(alphabet.lookup, clusterWorkerId$$1);
+        if (counter > 0) {
+            str = str + encode(alphabet.lookup, counter);
+        }
+        str = str + encode(alphabet.lookup, seconds);
+
+        return str;
+    }
+
+    /**
+     * Set the seed.
+     * Highly recommended if you don't want people to try to figure out your id schema.
+     * exposed as shortid.seed(int)
+     * @param seed Integer value to seed the random alphabet.  ALWAYS USE THE SAME SEED or you might get overlaps.
+     */
+    function seed(seedValue) {
+        alphabet.seed(seedValue);
+        return module.exports;
+    }
+
+    /**
+     * Set the cluster worker or machine id
+     * exposed as shortid.worker(int)
+     * @param workerId worker must be positive integer.  Number less than 16 is recommended.
+     * returns shortid module so it can be chained.
+     */
+    function worker(workerId) {
+        clusterWorkerId$$1 = workerId;
+        return module.exports;
+    }
+
+    /**
+     *
+     * sets new characters to use in the alphabet
+     * returns the shuffled alphabet
+     */
+    function characters(newCharacters) {
+        if (newCharacters !== undefined) {
+            alphabet.characters(newCharacters);
+        }
+
+        return alphabet.shuffled();
+    }
+
+    // Export all other functions as properties of the generate function
+    module.exports = generate;
+    module.exports.generate = generate;
+    module.exports.seed = seed;
+    module.exports.worker = worker;
+    module.exports.characters = characters;
+    module.exports.decode = decode;
+    module.exports.isValid = isValid;
+});
+
+var index$1 = index$2;
+
 /**
  * Transforms variables from Postman to Scenario format.
  * @param {string} str - string to transform.
@@ -9711,6 +10002,8 @@ var convertModeToHeader = function convertModeToHeader(mode) {
       return {};
   }
 };
+
+//TODO refactor input
 
 /**
  * Creates headers object from passed request.
@@ -9773,31 +10066,6 @@ var getURL = function getURL(url) {
 };
 
 /**
- * Creates Scenario request from passed Postman request.
- * @param itemRequest - Postman request.
- * @return {object}
- */
-var createRequest = function createRequest(itemRequest) {
-  var request = {
-    // TODO filter methods according to https://help.stoplight.io/scenarios/http/input
-    method: itemRequest.method.toLowerCase(),
-    url: getURL(itemRequest.url)
-  };
-  var headers = createRequestHeaders(itemRequest);
-  var body = createRequestBody(itemRequest);
-
-  if (!lodash.isEmpty(headers)) {
-    request.headers = headers;
-  }
-
-  if (!lodash.isUndefined(body)) {
-    request.body = body;
-  }
-
-  return request;
-};
-
-/**
  * Creates Scenario auth object from Postman auth object.
  * @param {object} auth - Postman auth object.
  * @return {object}
@@ -9835,14 +10103,29 @@ var createAuth = function createAuth() {
  * @param {object} item - Postman item.
  * @return {object}
  */
-var createInput = function createInput(item) {
-  if (lodash.isEmpty(item.request)) {
-    return null;
+var createInput = function createInput() {
+  var _ref2 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+      _ref2$request = _ref2.request,
+      request = _ref2$request === undefined ? {} : _ref2$request;
+
+  var allowedMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
+  var method = lodash.lowerCase(request.method);
+  var input = {
+    method: allowedMethods.includes(method) ? method : 'get',
+    url: getURL(request.url)
+  };
+
+  var headers = createRequestHeaders(request);
+  var body = createRequestBody(request);
+  var auth = createAuth(request.auth);
+
+  if (!lodash.isEmpty(headers)) {
+    input.headers = headers;
   }
 
-  var request = createRequest(item.request);
-  var auth = createAuth(item.request.auth);
-  var input = Object.assign({}, request);
+  if (!lodash.isUndefined(body)) {
+    input.body = body;
+  }
 
   if (auth) {
     input.auth = auth;
@@ -9885,16 +10168,13 @@ var createStep = function createStep() {
   var item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
   var step = {
+    id: index$1.generate().substring(0, 3).toLowerCase(),
     type: 'http',
-    name: item.name || ''
+    name: item.name || '',
+    input: createInput(item)
   };
-  var input = createInput(item);
   var before = createLogic(item, 'prerequest');
   var after = createLogic(item, 'test');
-
-  if (input) {
-    step.input = input;
-  }
 
   if (before) {
     step.before = before;
@@ -9914,10 +10194,14 @@ var createStep = function createStep() {
  */
 var createScenario = function createScenario(item) {
   var scenario = {
+    id: index$1.generate().substring(0, 3).toLowerCase(),
     name: item.name || '',
-    description: item.description || '',
     steps: []
   };
+
+  if (item.description) {
+    scenario.description = item.description;
+  }
 
   if (lodash.isArray(item.item)) {
     scenario.steps = item.item.map(createStep);
@@ -9950,4 +10234,4 @@ var index = {
 
 return index;
 
-}());
+}(crypto));

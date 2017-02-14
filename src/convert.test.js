@@ -102,20 +102,22 @@ test('getURL > returns URL parsed from object', (t) => {
   t.is(url, 'http://example.com:{$.ctx.var0}/post');
 });
 
-test('createRequest > creates request', (t) => {
-  const request = convert.createRequest({
-    url: 'http://example.com:{{var0}}/post',
-    method: 'POST',
-    header: [{
-      key: 'Authorization',
-      value: 'Bearer TOKEN',
-    }],
-    body: {
-      mode: 'formdata',
-      formdata: [{
-        key: 'foo',
-        value: 'bar'
-      }]
+test('createInput > creates input', (t) => {
+  const request = convert.createInput({
+    request: {
+      url: 'http://example.com:{{var0}}/post',
+      method: 'POST',
+      header: [{
+        key: 'Authorization',
+        value: 'Bearer TOKEN',
+      }],
+      body: {
+        mode: 'formdata',
+        formdata: [{
+          key: 'foo',
+          value: 'bar'
+        }]
+      }
     }
   });
 
@@ -132,16 +134,18 @@ test('createRequest > creates request', (t) => {
   });
 });
 
-test('createRequest > creates request with content type headers', (t) => {
-  const request = convert.createRequest({
-    url: 'http://example.com:{{var0}}/post',
-    method: 'POST',
-    body: {
-      mode: 'formdata',
-      formdata: [{
-        key: 'foo',
-        value: 'bar'
-      }]
+test('createInput > creates input with content type headers', (t) => {
+  const request = convert.createInput({
+    request: {
+      url: 'http://example.com:{{var0}}/post',
+      method: 'POST',
+      body: {
+        mode: 'formdata',
+        formdata: [{
+          key: 'foo',
+          value: 'bar'
+        }]
+      }
     }
   });
 
@@ -157,10 +161,12 @@ test('createRequest > creates request with content type headers', (t) => {
   });
 });
 
-test('createRequest > creates request without body and headers', (t) => {
-  const request = convert.createRequest({
-    url: 'http://example.com:{{var0}}/post',
-    method: 'POST'
+test('createInput > creates input without body and headers', (t) => {
+  const request = convert.createInput({
+    request: {
+      url: 'http://example.com:{{var0}}/post',
+      method: 'POST'
+    }
   });
 
   t.deepEqual(request, {
@@ -268,7 +274,10 @@ test('createInput > creates input', (t) => {
 });
 
 test('createInput > handles undefined input', (t) => {
-  t.is(convert.createInput({}), null);
+  t.deepEqual(convert.createInput(), {
+    method: 'get',
+    url: ''
+  });
 });
 
 test('createLogic > creates before script from array exec', (t) => {
@@ -372,7 +381,11 @@ test('createStep > creates step', (t) => {
 test('createStep > handles undefined input', (t) => {
   t.deepEqual(deleteIds(convert.createStep()), {
     type: 'http',
-    name: ''
+    name: '',
+    input: {
+      method: 'get',
+      url: ''
+    }
   });
 });
 

@@ -1,6 +1,7 @@
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var _ = _interopDefault(require('lodash'));
+var shortid = _interopDefault(require('shortid'));
 
 /**
  * Transforms variables from Postman to Scenario format.
@@ -272,6 +273,8 @@ var set = function set(object, property, value, receiver) {
   return value;
 };
 
+//TODO refactor input
+
 /**
  * Creates headers object from passed request.
  * @param {object} request - Request from which headers will be extracted.
@@ -333,31 +336,6 @@ var getURL = function getURL(url) {
 };
 
 /**
- * Creates Scenario request from passed Postman request.
- * @param itemRequest - Postman request.
- * @return {object}
- */
-var createRequest = function createRequest(itemRequest) {
-  var request = {
-    // TODO filter methods according to https://help.stoplight.io/scenarios/http/input
-    method: itemRequest.method.toLowerCase(),
-    url: getURL(itemRequest.url)
-  };
-  var headers = createRequestHeaders(itemRequest);
-  var body = createRequestBody(itemRequest);
-
-  if (!_.isEmpty(headers)) {
-    request.headers = headers;
-  }
-
-  if (!_.isUndefined(body)) {
-    request.body = body;
-  }
-
-  return request;
-};
-
-/**
  * Creates Scenario auth object from Postman auth object.
  * @param {object} auth - Postman auth object.
  * @return {object}
@@ -395,14 +373,29 @@ var createAuth = function createAuth() {
  * @param {object} item - Postman item.
  * @return {object}
  */
-var createInput = function createInput(item) {
-  if (_.isEmpty(item.request)) {
-    return null;
+var createInput = function createInput() {
+  var _ref2 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+      _ref2$request = _ref2.request,
+      request = _ref2$request === undefined ? {} : _ref2$request;
+
+  var allowedMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
+  var method = _.lowerCase(request.method);
+  var input = {
+    method: allowedMethods.includes(method) ? method : 'get',
+    url: getURL(request.url)
+  };
+
+  var headers = createRequestHeaders(request);
+  var body = createRequestBody(request);
+  var auth = createAuth(request.auth);
+
+  if (!_.isEmpty(headers)) {
+    input.headers = headers;
   }
 
-  var request = createRequest(item.request);
-  var auth = createAuth(item.request.auth);
-  var input = Object.assign({}, request);
+  if (!_.isUndefined(body)) {
+    input.body = body;
+  }
 
   if (auth) {
     input.auth = auth;
@@ -445,16 +438,13 @@ var createStep = function createStep() {
   var item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
   var step = {
+    id: shortid.generate().substring(0, 3).toLowerCase(),
     type: 'http',
-    name: item.name || ''
+    name: item.name || '',
+    input: createInput(item)
   };
-  var input = createInput(item);
   var before = createLogic(item, 'prerequest');
   var after = createLogic(item, 'test');
-
-  if (input) {
-    step.input = input;
-  }
 
   if (before) {
     step.before = before;
@@ -474,10 +464,14 @@ var createStep = function createStep() {
  */
 var createScenario = function createScenario(item) {
   var scenario = {
+    id: shortid.generate().substring(0, 3).toLowerCase(),
     name: item.name || '',
-    description: item.description || '',
     steps: []
   };
+
+  if (item.description) {
+    scenario.description = item.description;
+  }
 
   if (_.isArray(item.item)) {
     scenario.steps = item.item.map(createStep);
