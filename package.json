@@ -79,5 +79,7 @@
   "peerDependencies": {
     "lodash": "4.x.x"
   },
-  "dependencies": {}
+  "dependencies": {
+    "shortid": "2.2.x"
+  }
 }

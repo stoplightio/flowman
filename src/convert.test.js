@@ -1,5 +1,24 @@
 import test from 'ava';
 import * as convert from './convert';
+import _ from 'lodash';
+
+const deleteIds = (obj) => {
+  const newObj = _.clone(obj);
+
+  for (const field in newObj) {
+    if (newObj.hasOwnProperty(field)) {
+      if (field === 'id') {
+        delete newObj[field];
+      }
+
+      if (_.isArray(newObj[field])) {
+        newObj[field] = newObj[field].map(deleteIds);
+      }
+    }
+  }
+
+  return newObj;
+};
 
 test('createRequestHeaders > returns headers with body content type', (t) => {
   const headers = convert.createRequestHeaders({
@@ -326,7 +345,10 @@ test('createStep > creates step', (t) => {
     ]
   });
 
-  t.deepEqual(step, {
+  t.true(_.isString(step.id), 'Step id should be a string.');
+  t.true(step.id.length === 3, 'Step id should be 3 characters long.');
+
+  t.deepEqual(deleteIds(step), {
     type: 'http',
     name: 'Test Item',
     input: {
@@ -348,7 +370,7 @@ test('createStep > creates step', (t) => {
 });
 
 test('createStep > handles undefined input', (t) => {
-  t.deepEqual(convert.createStep(), {
+  t.deepEqual(deleteIds(convert.createStep()), {
     type: 'http',
     name: ''
   });
@@ -370,9 +392,11 @@ test('createScenario > creates scenario with one step', (t) => {
     }
   });
 
-  t.deepEqual(scenario, {
+  t.true(_.isString(scenario.id), 'Scenario id should be a string.');
+  t.true(scenario.id.length === 3, 'Scenario id should be 3 characters long.');
+
+  t.deepEqual(deleteIds(scenario), {
     name: 'Test Item',
-    description: '',
     steps: [{
       type: 'http',
       name: 'Test Item',
@@ -410,9 +434,8 @@ test('createScenario > creates scenario with multiple steps', (t) => {
     ]
   });
 
-  t.deepEqual(scenario, {
+  t.deepEqual(deleteIds(scenario), {
       name: 'Test Item',
-      description: '',
       steps: [
         {
           type: 'http',

@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import shortid from 'shortid';
 import * as utils from './utils';
 
 /**
@@ -169,6 +170,7 @@ export const createLogic = (item, type) => {
  */
 export const createStep = (item = {}) => {
   const step = {
+    id: shortid.generate().substring(0, 3).toLowerCase(),
     type: 'http',
     name: item.name || '',
   };
@@ -198,10 +200,14 @@ export const createStep = (item = {}) => {
  */
 export const createScenario = (item) => {
   const scenario = {
+    id: shortid.generate().substring(0, 3).toLowerCase(),
     name: item.name || '',
-    description: item.description || '',
     steps: [],
   };
+
+  if (item.description) {
+    scenario.description = item.description;
+  }
 
   if (_.isArray(item.item)) {
     scenario.steps = item.item.map(createStep);
