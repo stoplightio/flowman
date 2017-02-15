@@ -210,8 +210,14 @@ export const convert = (collection) => {
     return [];
   }
 
+  let scenarios = _.get(collection, 'scenarios', []);
+
+  if (!_.isEmpty(collection.item)) {
+    scenarios = _.map(collection.item, createScenario);
+  }
+
   return {
-    name: _.get(collection, 'info.name') || '',
-    scenarios: collection.item.map(createScenario)
+    name: _.get(collection, 'name') || _.get(collection, 'info.name') || '',
+    scenarios,
   };
 };
