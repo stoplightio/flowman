@@ -60,6 +60,14 @@ export const getURL = (url) => {
 };
 
 /**
+ * Generates random ID string 3 characters long.
+ * @return {string}
+ */
+export const generateId = () => {
+  return shortid.generate().substring(0, 3).toLowerCase();
+};
+
+/**
  * Creates Scenario auth object from Postman auth object.
  * @param {object} auth - Postman auth object.
  * @return {object}
@@ -156,7 +164,7 @@ export const createLogic = (item, type) => {
  */
 export const createStep = (item = {}) => {
   const step = {
-    id: shortid.generate().substring(0, 3).toLowerCase(),
+    id: generateId(),
     type: 'http',
     name: item.name || '',
     input: createInput(item)
@@ -182,7 +190,7 @@ export const createStep = (item = {}) => {
  */
 export const createScenario = (item) => {
   const scenario = {
-    id: shortid.generate().substring(0, 3).toLowerCase(),
+    id: generateId(),
     name: item.name || '',
     steps: [],
   };
@@ -213,7 +221,27 @@ export const convert = (collection) => {
   let scenarios = _.get(collection, 'scenarios', []);
 
   if (!_.isEmpty(collection.item)) {
-    scenarios = _.map(collection.item, createScenario);
+    // Get two-dimensional array of scenarios and steps for ungrouped scenario
+    const [grouped, ungrouped] = collection.item.reduce(([grouped, ungrouped], item) => {
+      if (_.isArray(item.item)) {
+        grouped.push(createScenario(item));
+      } else {
+        ungrouped.push(createStep(item));
+      }
+
+      return [grouped, ungrouped];
+    }, [[], []]);
+
+    scenarios = scenarios.concat(grouped);
+
+    // Group all ungrouped requests (steps) into "Ungrouped" scenario
+    if (ungrouped.length) {
+      scenarios.push({
+        id: generateId(),
+        name: 'Ungrouped',
+        steps: ungrouped,
+      });
+    }
   }
 
   return {

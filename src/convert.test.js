@@ -471,18 +471,81 @@ test('createScenario > creates scenario with multiple steps', (t) => {
   );
 });
 
-test('creates scenario collection', (t) => {
+test('creates collection with grouped and ungrouped scenario', (t) => {
   const collection = convert.convert({
     info: {
       name: 'Test collection',
     },
-    item: []
+    item: [
+      {
+        name: 'Grouped',
+        item: [
+          {
+            name: 'Grouped Item 1',
+            request: {
+              url: 'http://example.com:{{var0}}',
+              method: 'GET'
+            }
+          },
+        ]
+      },
+      {
+        name: 'Ungrouped Item 1',
+        request: {
+          url: 'http://example.com:{{var0}}/post',
+          method: 'POST'
+        }
+      },
+      {
+        name: 'Ungrouped Item 2',
+        request: {
+          url: 'http://example.com:{{var0}}/post',
+          method: 'POST'
+        }
+      }
+    ]
   });
 
-  t.deepEqual(collection, {
-    name: 'Test collection',
-    scenarios: []
-  });
+  t.deepEqual(deleteIds(collection), {
+      name: 'Test collection',
+      scenarios: [
+        {
+          name: 'Grouped',
+          steps: [
+            {
+              type: 'http',
+              name: 'Grouped Item 1',
+              input: {
+                method: 'get',
+                url: 'http://example.com:{$.ctx.var0}'
+              }
+            }
+          ]
+        },
+        {
+          name: 'Ungrouped',
+          steps: [
+            {
+              type: 'http',
+              name: 'Ungrouped Item 1',
+              input: {
+                method: 'post',
+                url: 'http://example.com:{$.ctx.var0}/post'
+              }
+            },
+            {
+              type: 'http',
+              name: 'Ungrouped Item 2',
+              input: {
+                method: 'post',
+                url: 'http://example.com:{$.ctx.var0}/post'
+              }
+            }
+          ]
+        }
+      ]
+    }
+  );
 });
 
 test('handles undefined input', (t) => {

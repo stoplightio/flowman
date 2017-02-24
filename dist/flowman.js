@@ -238,6 +238,44 @@ var set = function set(object, property, value, receiver) {
   return value;
 };
 
+var slicedToArray = function () {
+  function sliceIterator(arr, i) {
+    var _arr = [];
+    var _n = true;
+    var _d = false;
+    var _e = undefined;
+
+    try {
+      for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+        _arr.push(_s.value);
+
+        if (i && _arr.length === i) break;
+      }
+    } catch (err) {
+      _d = true;
+      _e = err;
+    } finally {
+      try {
+        if (!_n && _i["return"]) _i["return"]();
+      } finally {
+        if (_d) throw _e;
+      }
+    }
+
+    return _arr;
+  }
+
+  return function (arr, i) {
+    if (Array.isArray(arr)) {
+      return arr;
+    } else if (Symbol.iterator in Object(arr)) {
+      return sliceIterator(arr, i);
+    } else {
+      throw new TypeError("Invalid attempt to destructure non-iterable instance");
+    }
+  };
+}();
+
 var lodash=createCommonjsModule(function(module,exports){/**
  * @license
  * lodash <https://lodash.com/>
@@ -10003,8 +10041,6 @@ var convertModeToHeader = function convertModeToHeader(mode) {
   }
 };
 
-//TODO refactor input
-
 /**
  * Creates headers object from passed request.
  * @param {object} request - Request from which headers will be extracted.
@@ -10063,6 +10099,14 @@ var getURL = function getURL(url) {
   }
 
   return replaceVariables(result || '');
+};
+
+/**
+ * Generates random ID string 3 characters long.
+ * @return {string}
+ */
+var generateId = function generateId() {
+  return index$1.generate().substring(0, 3).toLowerCase();
 };
 
 /**
@@ -10168,7 +10212,7 @@ var createStep = function createStep() {
   var item = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
   var step = {
-    id: index$1.generate().substring(0, 3).toLowerCase(),
+    id: generateId(),
     type: 'http',
     name: item.name || '',
     input: createInput(item)
@@ -10194,7 +10238,7 @@ var createStep = function createStep() {
  */
 var createScenario = function createScenario(item) {
   var scenario = {
-    id: index$1.generate().substring(0, 3).toLowerCase(),
+    id: generateId(),
     name: item.name || '',
     steps: []
   };
@@ -10222,9 +10266,42 @@ var convert = function convert(collection) {
     return [];
   }
 
+  var scenarios = lodash.get(collection, 'scenarios', []);
+
+  if (!lodash.isEmpty(collection.item)) {
+    // Get two-dimensional array of scenarios and steps for ungrouped scenario
+    var _collection$item$redu = collection.item.reduce(function (_ref3, item) {
+      var _ref4 = slicedToArray(_ref3, 2),
+          grouped = _ref4[0],
+          ungrouped = _ref4[1];
+
+      if (lodash.isArray(item.item)) {
+        grouped.push(createScenario(item));
+      } else {
+        ungrouped.push(createStep(item));
+      }
+
+      return [grouped, ungrouped];
+    }, [[], []]),
+        _collection$item$redu2 = slicedToArray(_collection$item$redu, 2),
+        grouped = _collection$item$redu2[0],
+        ungrouped = _collection$item$redu2[1];
+
+    scenarios = scenarios.concat(grouped);
+
+    // Group all ungrouped requests (steps) into "Ungrouped" scenario
+    if (ungrouped.length) {
+      scenarios.push({
+        id: generateId(),
+        name: 'Ungrouped',
+        steps: ungrouped
+      });
+    }
+  }
+
   return {
-    name: lodash.get(collection, 'info.name') || '',
-    scenarios: collection.item.map(createScenario)
+    name: lodash.get(collection, 'name') || lodash.get(collection, 'info.name') || '',
+    scenarios: scenarios
   };
 };
 
